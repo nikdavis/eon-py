@@ -1,0 +1,61 @@
+name: Release
+
+# This workflow runs when you push a tag like "v0.1.0"
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build_wheels:
+    name: Build wheels for ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        # Build on all major OSes
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Rust for ARM on Linux
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          rustup target add aarch64-unknown-linux-gnu
+          sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Build wheels using cibuildwheel
+        uses: pypa/cibuildwheel@v2.19.2
+        env:
+          # Tell cibuildwheel to build for both native and emulated architectures
+          CIBW_ARCHS_LINUX: auto aarch64
+          CIBW_ARCHS_MACOS: auto arm64
+          CIBW_ARCHS_WINDOWS: auto ARM64
+          # Set the linker for ARM builds on Linux
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+
+      - name: Upload the wheels as a build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.os }}
+          path: ./wheelhouse/*.whl
+
+  upload_pypi:
+    name: Upload to PyPI
+    needs: [build_wheels] # This job waits for all the wheels to be built
+    runs-on: ubuntu-latest
+    # This uses PyPI's trusted publishing to avoid API tokens
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Download all wheels from build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: wheels-*
+          merge-multiple: true
+
+      - name: Publish package to PyPI
+        uses: pypa/gh-action-pypi-publish@v1.9.0
