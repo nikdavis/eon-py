@@ -43,10 +43,15 @@ Python versions: 3.8, 3.9, 3.10, 3.11, 3.12
   c) Use zig as the linker (maturin supports this)
 
 ## Current Working Builds
-✅ Linux x86_64 - All Python versions
-✅ macOS (pending test of universal2)
-✅ Windows x86_64 (after Unicode fixes)
+✅ Linux x86_64 - All Python versions (CONFIRMED)
+⏳ macOS universal2 - Not yet tested
+❌ Windows x86_64 - python38.lib linking error
 ❌ Linux aarch64 - Cross-compilation not properly configured
+
+## Windows Issue
+**Problem**: Windows build fails with "LINK : fatal error LNK1181: cannot open input file 'python38.lib'"
+**Root Cause**: Python development libraries not properly found/linked on Windows CI
+**Solution Needed**: Either install Python dev libs or use maturin-action which handles this
 
 ## Recommended Next Steps
 

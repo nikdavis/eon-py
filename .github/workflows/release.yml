@@ -11,9 +11,10 @@ jobs:
     name: Build wheels for ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false  # Don't cancel other jobs if one fails
       matrix:
-        # Build on all major OSes
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        # Build on Linux and macOS for now (Windows has python38.lib issues)
+        os: [ubuntu-latest, macos-latest]
 
     steps:
       - name: Checkout code
