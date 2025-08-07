@@ -134,7 +134,13 @@ def test_error_handling():
         eon.loads("invalid { syntax")
         assert False, "Should have raised an error"
     except ValueError as e:
-        print(f"{CHECK} Caught parsing error: {e}")
+        # On Windows, the error message may contain Unicode characters
+        # that can't be printed to the console
+        error_msg = str(e)
+        if sys.platform == "win32":
+            # Replace Unicode box-drawing characters with ASCII alternatives
+            error_msg = error_msg.encode('ascii', 'replace').decode('ascii')
+        print(f"{CHECK} Caught parsing error: {error_msg[:50]}...")  # Truncate for safety
     
     try:
         with open("nonexistent.eon", "r") as f:
