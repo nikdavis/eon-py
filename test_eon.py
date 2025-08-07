@@ -3,6 +3,10 @@
 
 import eon
 import json
+import sys
+
+# Use ASCII-safe characters for Windows compatibility
+CHECK = "[OK]" if sys.platform == "win32" else "✓"
 
 def test_loads_basic():
     """Test parsing basic EON strings"""
@@ -11,31 +15,31 @@ def test_loads_basic():
     # Test null
     result = eon.loads("null")
     assert result is None, f"Expected None, got {result}"
-    print("✓ Null parsing works")
+    print(f"{CHECK} Null parsing works")
     
     # Test boolean
     result = eon.loads("true")
     assert result is True, f"Expected True, got {result}"
     result = eon.loads("false")
     assert result is False, f"Expected False, got {result}"
-    print("✓ Boolean parsing works")
+    print(f"{CHECK} Boolean parsing works")
     
     # Test numbers
     result = eon.loads("42")
     assert result == 42, f"Expected 42, got {result}"
     result = eon.loads("3.14")
     assert abs(result - 3.14) < 0.001, f"Expected 3.14, got {result}"
-    print("✓ Number parsing works")
+    print(f"{CHECK} Number parsing works")
     
     # Test strings
     result = eon.loads('"hello world"')
     assert result == "hello world", f"Expected 'hello world', got {result}"
-    print("✓ String parsing works")
+    print(f"{CHECK} String parsing works")
     
     # Test lists
     result = eon.loads('[1, 2, 3]')
     assert result == [1, 2, 3], f"Expected [1, 2, 3], got {result}"
-    print("✓ List parsing works")
+    print(f"{CHECK} List parsing works")
 
 def test_loads_complex():
     """Test parsing complex EON structures"""
@@ -62,7 +66,7 @@ def test_loads_complex():
     assert result["skills"] == ["Python", "Rust", "JavaScript"], f"Expected skills list, got {result['skills']}"
     assert result["metadata"]["created_at"] == "2024-01-01", f"Expected metadata.created_at='2024-01-01', got {result['metadata']['created_at']}"
     
-    print("✓ Complex object parsing works")
+    print(f"{CHECK} Complex object parsing works")
     print(f"Parsed object: {json.dumps(result, indent=2)}")
 
 def test_dumps():
@@ -77,7 +81,7 @@ def test_dumps():
     assert eon.dumps(3.14) == "3.14"
     assert eon.dumps("hello") == '"hello"'
     assert eon.dumps([1, 2, 3]) == "[1, 2, 3]"
-    print("✓ Basic type serialization works")
+    print(f"{CHECK} Basic type serialization works")
     
     # Test complex object
     obj = {
@@ -90,12 +94,12 @@ def test_dumps():
     # Parse it back to verify round-trip
     parsed = eon.loads(result)
     assert parsed == obj, f"Round-trip failed: {parsed} != {obj}"
-    print("✓ Complex object serialization works")
+    print(f"{CHECK} Complex object serialization works")
     
     # Test formatted output
     formatted = eon.dumps(obj, indent=2)
     assert "\n" in formatted, "Expected multiline output with indent"
-    print("✓ Formatted output works")
+    print(f"{CHECK} Formatted output works")
     print(f"Formatted EON:\n{formatted}")
 
 def test_load_dump_files():
@@ -108,7 +112,7 @@ def test_load_dump_files():
     
     assert "user" in result, f"Expected 'user' key in result, got {result.keys()}"
     assert result["user"]["name"] == "Alice", f"Expected user.name='Alice', got {result['user']['name']}"
-    print("✓ load() from file works")
+    print(f"{CHECK} load() from file works")
     
     # Test dump to file
     test_obj = {"test": "data", "number": 123}
@@ -120,7 +124,7 @@ def test_load_dump_files():
         loaded = eon.load(f)
     
     assert loaded == test_obj, f"File round-trip failed: {loaded} != {test_obj}"
-    print("✓ dump() to file works")
+    print(f"{CHECK} dump() to file works")
 
 def test_error_handling():
     """Test error handling"""
@@ -130,14 +134,14 @@ def test_error_handling():
         eon.loads("invalid { syntax")
         assert False, "Should have raised an error"
     except ValueError as e:
-        print(f"✓ Caught parsing error: {e}")
+        print(f"{CHECK} Caught parsing error: {e}")
     
     try:
         with open("nonexistent.eon", "r") as f:
             eon.load(f)
         assert False, "Should have raised an error"
     except FileNotFoundError:
-        print(f"✓ Caught file not found error")
+        print(f"{CHECK} Caught file not found error")
 
 if __name__ == "__main__":
     print("=" * 50)
@@ -151,5 +155,6 @@ if __name__ == "__main__":
     test_error_handling()
     
     print("\n" + "=" * 50)
-    print("All tests passed! ✅")
+    success_mark = "SUCCESS!" if sys.platform == "win32" else "✅"
+    print(f"All tests passed! {success_mark}")
     print("=" * 50)
