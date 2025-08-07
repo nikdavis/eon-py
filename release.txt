@@ -1,0 +1,113 @@
+RELEASE STRATEGY AND ISSUES SUMMARY
+====================================
+
+## Current Release Strategy
+
+We're attempting to build cross-platform Python wheels for the eon library (Python bindings for the Rust-based EON configuration format).
+
+Target platforms:
+- Linux (x86_64 and aarch64)
+- macOS (x86_64 and arm64 via universal2)
+- Windows (x86_64)
+
+Python versions: 3.8, 3.9, 3.10, 3.11, 3.12
+
+## Issues Encountered
+
+### 1. Windows Unicode Encoding Issues
+**Problem**: Test script failed on Windows due to Unicode characters (✓, ✅, box-drawing characters in error messages)
+**Solution**: Added platform detection to use ASCII alternatives on Windows
+- Use [OK] instead of ✓
+- Use SUCCESS! instead of ✅
+- Sanitize error messages containing Unicode box-drawing characters
+
+### 2. Mysterious "puccinialin" Error
+**Problem**: cibuildwheel on Ubuntu was looking for "puccinialin" instead of "maturin"
+**Attempted Solutions**:
+- Recreated pyproject.toml from scratch (suspected hidden characters)
+- Switched from cibuildwheel to direct maturin calls
+**Status**: Bypassed by using maturin directly
+
+### 3. macOS Universal2 Build Syntax
+**Problem**: Wrong syntax for universal2 builds (--universal2 vs --target universal2-apple-darwin)
+**Solution**: Fixed to use --target universal2-apple-darwin
+
+### 4. Linux ARM64 Cross-Compilation Failure
+**Problem**: Linker error when building for aarch64-unknown-linux-gnu
+- Error: "Relocations in generic ELF (EM: 183)" 
+- The x86_64 linker can't link aarch64 object files
+**Root Cause**: Missing proper cross-compilation toolchain setup
+**Solution Needed**: Either:
+  a) Use Docker with cross-compilation image (e.g., manylinux)
+  b) Skip ARM builds for now
+  c) Use zig as the linker (maturin supports this)
+
+## Current Working Builds
+✅ Linux x86_64 - All Python versions
+✅ macOS (pending test of universal2)
+✅ Windows x86_64 (after Unicode fixes)
+❌ Linux aarch64 - Cross-compilation not properly configured
+
+## Recommended Next Steps
+
+### Option 1: Simplify for Initial Release
+- Remove ARM/aarch64 builds for now
+- Focus on x86_64 for all platforms
+- Add ARM support later with proper cross-compilation setup
+
+### Option 2: Use maturin's Docker Support
+Replace current workflow with:
+```yaml
+- uses: PyO3/maturin-action@v1
+  with:
+    target: ${{ matrix.target }}
+    args: --release --out dist
+    manylinux: auto  # This handles cross-compilation properly
+```
+
+### Option 3: Use zig for Cross-Compilation
+Install zig and use it as the linker:
+```bash
+pip install ziglang
+maturin build --release --target aarch64-unknown-linux-gnu --zig
+```
+
+## File Structure
+```
+eon-py/
+├── src/
+│   └── eon/
+│       ├── __init__.py    # Python API wrapper
+│       └── lib.rs         # Rust implementation
+├── .github/
+│   └── workflows/
+│       ├── release.yml    # Release automation
+│       └── test.yml       # CI testing
+├── Cargo.toml             # Rust configuration
+├── pyproject.toml         # Python package configuration
+├── test_eon.py            # Test suite (Windows-compatible)
+└── README.md              # Documentation
+```
+
+## Version History
+- v0.1.0: Initial attempt with cibuildwheel
+- v0.1.1: Attempted fix for "puccinialin" error
+- v0.1.2: Switched to direct maturin calls
+- v0.1.3: Fixed macOS universal2 syntax, still failing on Linux ARM
+
+## Lessons Learned
+1. Windows console encoding is limited - avoid Unicode in CLI output
+2. Cross-compilation for ARM requires proper toolchain setup
+3. cibuildwheel can have mysterious parsing issues - maturin direct is more reliable
+4. Platform-specific build commands need careful handling in CI
+5. Always test error messages for platform compatibility
+
+## Production Readiness Checklist
+- [x] Core functionality working
+- [x] Test suite passing locally
+- [x] Windows Unicode issues fixed
+- [x] macOS build configuration
+- [x] Linux x86_64 builds working
+- [ ] Linux ARM64 cross-compilation
+- [ ] PyPI trusted publishing setup
+- [ ] Comprehensive wheel testing across platforms
