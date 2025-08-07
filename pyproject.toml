@@ -22,3 +22,10 @@ classifiers = [
 [tool.maturin]
 python-source = "src"
 module-name = "eon._eon"
+
+[tool.cibuildwheel]
+# Skip Python 3.7 and PyPy
+skip = ["cp37-*", "pp*", "*-musllinux_i686"]
+
+# Test command to ensure the wheel works
+test-command = "python -c 'from eon import loads; print(loads(\"42\"))'"
