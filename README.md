@@ -5,7 +5,7 @@ Python bindings for the [EON (Extensible Object Notation)](https://github.com/em
 ## Installation
 
 ```bash
-pip install eon
+pip install eon-py
 ```
 
 ## Usage
