@@ -41,10 +41,9 @@ jobs:
             # TODO: Add ARM64 support with proper cross-compilation setup
             maturin build --release --out dist --interpreter python3.8 python3.9 python3.10 python3.11 python3.12
           elif [ "${{ matrix.os }}" == "macos-latest" ]; then
-            # Build for macOS universal2 (x86_64 + arm64)
-            rustup target add x86_64-apple-darwin
-            rustup target add aarch64-apple-darwin
-            maturin build --release --out dist --target universal2-apple-darwin --interpreter python3.8 python3.9 python3.10 python3.11 python3.12
+            # Build for native macOS architecture
+            # Note: universal2 has metadata issues with maturin
+            maturin build --release --out dist --interpreter python3.8 python3.9 python3.10 python3.11 python3.12
           else
             # Windows x86_64
             maturin build --release --out dist --interpreter python3.8 python3.9 python3.10 python3.11 python3.12

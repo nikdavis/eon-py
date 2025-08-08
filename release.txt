@@ -44,9 +44,16 @@ Python versions: 3.8, 3.9, 3.10, 3.11, 3.12
 
 ## Current Working Builds
 ✅ Linux x86_64 - All Python versions (CONFIRMED)
-⏳ macOS universal2 - Not yet tested
+❌ macOS universal2 - Metadata missing in wheel (maturin bug)
+✅ macOS x86_64 - Using native builds instead
 ❌ Windows x86_64 - python38.lib linking error
 ❌ Linux aarch64 - Cross-compilation not properly configured
+
+## macOS Universal2 Issue
+**Problem**: Universal2 wheels missing Name/Version metadata
+**Error**: "InvalidDistribution: Metadata is missing required fields: Name, Version"
+**Root Cause**: Bug in maturin's universal2-apple-darwin target
+**Solution**: Build native x86_64 wheels on macOS runners instead
 
 ## Windows Issue
 **Problem**: Windows build fails with "LINK : fatal error LNK1181: cannot open input file 'python38.lib'"
