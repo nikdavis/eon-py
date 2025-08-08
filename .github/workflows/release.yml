@@ -1,76 +1,77 @@
 name: Release
 
-# This workflow runs when you push a tag like "v0.1.0"
 on:
   push:
     tags:
-      - 'v*'
+      - "v*.*.*"
+  workflow_dispatch:
 
 jobs:
-  build_wheels:
-    name: Build wheels for ${{ matrix.os }}
+  build:
+    name: build ${{ matrix.target }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false  # Don't cancel other jobs if one fails
+      fail-fast: false
       matrix:
-        # Build on Linux and macOS for now (Windows has python38.lib issues)
-        os: [ubuntu-latest, macos-latest]
+        include:
+          # Linux
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+          # macOS (separate builds as recommended in CLAUDE.md)
+          - os: macos-13   # Intel runner
+            target: x86_64-apple-darwin
+          - os: macos-14   # ARM runner  
+            target: aarch64-apple-darwin
+          # Windows (abi3 should fix python38.lib issues)
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Rust for ARM on Linux
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          rustup target add aarch64-unknown-linux-gnu
-          sudo apt-get update && sudo apt-get install -y gcc-aarch64-linux-gnu
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
+          python-version: "3.11"
 
-      - name: Install maturin
-        run: pip install maturin
+      # Build wheels with maturin-action (handles manylinux and cross-compilation)
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.target }}
+          args: --release -o dist
+          manylinux: auto
+          sccache: true
 
-      - name: Build wheels using maturin
-        run: |
-          if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
-            # Build for Linux x86_64 only for now
-            # TODO: Add ARM64 support with proper cross-compilation setup
-            maturin build --release --out dist --interpreter python3.8 python3.9 python3.10 python3.11 python3.12
-          elif [ "${{ matrix.os }}" == "macos-latest" ]; then
-            # Build for native macOS architecture
-            # Note: universal2 has metadata issues with maturin
-            maturin build --release --out dist --interpreter python3.8 python3.9 python3.10 python3.11 python3.12
-          else
-            # Windows x86_64
-            maturin build --release --out dist --interpreter python3.8 python3.9 python3.10 python3.11 python3.12
-          fi
-        shell: bash
-
-      - name: Upload the wheels as a build artifact
+      - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: wheels-${{ matrix.os }}
-          path: dist/*.whl
+          name: wheels-${{ matrix.target }}
+          path: dist
 
-  upload_pypi:
-    name: Upload to PyPI
-    needs: [build_wheels] # This job waits for all the wheels to be built
+  publish:
+    name: Publish to PyPI
+    needs: build
     runs-on: ubuntu-latest
-    # This uses PyPI's trusted publishing to avoid API tokens
     permissions:
       id-token: write
-
+      contents: read
     steps:
-      - name: Download all wheels from build artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
-          path: dist
           pattern: wheels-*
           merge-multiple: true
+          path: dist
 
-      - name: Publish package to PyPI
-        uses: pypa/gh-action-pypi-publish@v1.9.0
+      - name: Verify wheels metadata
+        run: |
+          python -m pip install twine
+          python -m twine check dist/*
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist
+          verbose: true
+          skip-existing: true
